@@ -1,0 +1,27 @@
+/target
+
+# Runs are written by training. Only the story runs are published, slim: metrics, final
+# weights, valley and log. Their snapshots (up to 316 MB each) and the generated run list
+# stay local; the viewer opens the showcase when runs/index.js is missing.
+/runs/*
+!/runs/01_pairs_char/
+!/runs/02_short_memory_char/
+!/runs/03_attention_char/
+!/runs/04_attention_bpe/
+!/runs/90_showcase_tinystories/
+!/runs/x1_mlp_bpe/
+/runs/*/*
+!/runs/*/meta.js
+!/runs/*/metrics.js
+!/runs/*/model.js
+!/runs/*/landscape.js
+!/runs/*/train.log
+
+# Data: only Tiny Shakespeare (1 MB) and the TinyStories builder are published.
+/data/*
+!/data/tinyshakespeare.txt
+!/data/prepare_tinystories.py
+
+# Papers: the README links to them; the PDFs and saved pages stay local.
+/docs/papers/*
+!/docs/papers/README.md

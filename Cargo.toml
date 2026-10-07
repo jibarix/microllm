@@ -1,0 +1,11 @@
+[package]
+name = "microllm"
+version = "0.1.0"
+edition = "2024"
+description = "A small language model in plain Rust where every number of training can be looked at"
+license = "MIT"
+readme = "README.md"
+# Not a library: never upload this to crates.io.
+publish = false
+
+[dependencies]

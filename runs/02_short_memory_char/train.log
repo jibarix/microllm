@@ -1,0 +1,159 @@
+microllm 0.1.0 · run lad_mlp · model mlp · started at unix time 1791325441
+config: steps=10000 examples/step=32 context=8 embedding_dim=16 hidden=128 tanh_gain=1.6666666666666667 output_scale=0.1 optimizer=adamw lr=0.003 weight_decay=0.01 seed=42 eval_every=100 eval_batches=20 snap_every=500 throttle_ms=0 threads=4
+data: data/tinyshakespeare.txt · 1115394 characters · sha256 86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed
+tokenizer: characters (65 tokens)
+--chars 320000: 10000 steps
+binary: exe_sha256=0fa6699c1837960ec332258cab63a0aa1be2c1a923416d99227c522918604df9 · rustc=rustc 1.95.0 (59807616e 2026-04-14) · profile=release · target=x86_64-pc-windows-msvc · version=0.1.0
+
+gradcheck before training:
+check                                                elements  max abs err  max rel err  result
+add                                                        24    1.898e-14    4.022e-13  PASS
+mul                                                        24    3.128e-14    3.921e-11  PASS
+matmul                                                     25    4.685e-14    6.425e-12  PASS
+add_row                                                    16    2.870e-14    5.486e-13  PASS
+tanh                                                       12    5.086e-14    4.620e-13  PASS
+embedding (repeated ids)                                   18    8.135e-14    4.626e-10  PASS
+cross_entropy                                              20    7.943e-16    9.796e-12  PASS
+mean                                                       12    1.253e-14    2.939e-13  PASS
+reshape (4x6 → 3x8)                                        24    3.890e-14    3.626e-11  PASS
+reuse: x*x + x                                             12    1.308e-13    3.530e-10  PASS
+reuse: x + x                                               12    4.219e-14    1.556e-12  PASS
+mlp: embedding→matmul→add_row→tanh→cross_entropy           42    9.551e-13    1.137e-10  PASS
+mlp model (real forward code, tiny)                        91    1.777e-11    8.675e-11  PASS
+scale                                                      12    8.066e-15    4.360e-13  PASS
+mul_row                                                    16    1.958e-14    8.053e-13  PASS
+gelu (−4 … 3.7, including 0)                               10    2.773e-14    1.452e-10  PASS
+normalize (layernorm core)                                 15    6.404e-13    3.312e-11  PASS
+normalize (rows nearly constant)                            8     1.772e-6     2.352e-8  PASS
+layernorm: normalize→mul_row→add_row (x, gain, bias)       20    5.053e-13    5.812e-12  PASS
+split_heads (2·3 x 2·2 → 2·2·3 x 2)                        24    3.465e-14    9.073e-12  PASS
+merge_heads (2·2·3 x 2 → 2·3 x 2·2)                        24    3.448e-14    8.044e-12  PASS
+batch_matmul (2 blocks of 3x4 · 4x3)                       48    8.421e-14    2.459e-11  PASS
+batch_matmul, transposed (2 blocks of 3x4 · (3x4)ᵀ)        48    2.396e-13    1.246e-11  PASS
+causal_softmax (2 blocks, T = 3)                           18    1.375e-14    3.469e-10  PASS
+attention: split→q·kᵀ→scale→causal_softmax→·v→merge        72    6.840e-14    4.626e-10  PASS
+transformer model (real forward code, tiny)               571    7.479e-12     7.055e-8  PASS
+
+mlp: vocab 65, 25937 params, 1003854 train / 111540 val tokens (1003854 / 111540 characters), baseline loss ln(65) = 4.1744
+trace: 30 snapshots × 232953 numbers; detail = full (auto: full snapshots estimated at 37 MB)
+
+step     0  batch loss 4.1523  train 4.1710  val 4.1685 (6.014 bits/char)  |grad| 1.5662  tanh saturated 22.2%  dead 0
+step   100  batch loss 3.0475  train 2.9091  val 3.0727 (4.433 bits/char)  |grad| 1.5953  tanh saturated 34.8%  dead 0
+step   200  batch loss 2.6432  train 2.7016  val 2.8361 (4.092 bits/char)  |grad| 1.7974  tanh saturated 36.4%  dead 0
+step   300  batch loss 2.8606  train 2.5378  val 2.7090 (3.908 bits/char)  |grad| 1.6740  tanh saturated 38.8%  dead 0
+step   400  batch loss 2.6223  train 2.5079  val 2.6633 (3.842 bits/char)  |grad| 1.8763  tanh saturated 40.7%  dead 0
+step   500  batch loss 2.9808  train 2.4344  val 2.5951 (3.744 bits/char)  |grad| 1.7407  tanh saturated 41.5%  dead 0
+step   600  batch loss 2.2642  train 2.3767  val 2.5645 (3.700 bits/char)  |grad| 1.6510  tanh saturated 42.5%  dead 0
+step   700  batch loss 2.4231  train 2.3565  val 2.5593 (3.692 bits/char)  |grad| 1.6645  tanh saturated 44.7%  dead 0
+step   800  batch loss 2.3550  train 2.3197  val 2.5264 (3.645 bits/char)  |grad| 1.7260  tanh saturated 45.8%  dead 0
+step   900  batch loss 2.1897  train 2.3269  val 2.4743 (3.570 bits/char)  |grad| 1.7337  tanh saturated 46.3%  dead 0
+step  1000  batch loss 2.2060  train 2.2909  val 2.4937 (3.598 bits/char)  |grad| 1.5581  tanh saturated 47.3%  dead 0
+step  1100  batch loss 2.2280  train 2.2679  val 2.4556 (3.543 bits/char)  |grad| 1.7283  tanh saturated 48.6%  dead 0
+step  1200  batch loss 2.3712  train 2.2695  val 2.4657 (3.557 bits/char)  |grad| 2.0771  tanh saturated 48.6%  dead 0
+step  1300  batch loss 2.1890  train 2.2405  val 2.4709 (3.565 bits/char)  |grad| 1.6903  tanh saturated 48.9%  dead 0
+step  1400  batch loss 2.2391  train 2.2191  val 2.4735 (3.569 bits/char)  |grad| 1.7546  tanh saturated 50.1%  dead 0
+step  1500  batch loss 1.5525  train 2.2019  val 2.4490 (3.533 bits/char)  |grad| 1.5583  tanh saturated 51.0%  dead 0
+step  1600  batch loss 2.1023  train 2.1927  val 2.4128 (3.481 bits/char)  |grad| 1.8726  tanh saturated 51.4%  dead 0
+step  1700  batch loss 2.0072  train 2.1811  val 2.4251 (3.499 bits/char)  |grad| 1.8264  tanh saturated 51.4%  dead 0
+step  1800  batch loss 2.2239  train 2.1982  val 2.4229 (3.495 bits/char)  |grad| 1.8157  tanh saturated 52.8%  dead 0
+step  1900  batch loss 2.0086  train 2.1529  val 2.3780 (3.431 bits/char)  |grad| 1.6020  tanh saturated 53.5%  dead 0
+step  2000  batch loss 2.5712  train 2.1422  val 2.3805 (3.434 bits/char)  |grad| 1.9008  tanh saturated 53.8%  dead 0
+step  2100  batch loss 2.2014  train 2.1178  val 2.3183 (3.345 bits/char)  |grad| 1.8659  tanh saturated 54.0%  dead 0
+step  2200  batch loss 2.0743  train 2.1232  val 2.3501 (3.391 bits/char)  |grad| 1.8458  tanh saturated 54.6%  dead 0
+step  2300  batch loss 1.9624  train 2.1181  val 2.3537 (3.396 bits/char)  |grad| 1.7163  tanh saturated 55.1%  dead 0
+step  2400  batch loss 2.1216  train 2.1377  val 2.3473 (3.386 bits/char)  |grad| 1.9070  tanh saturated 55.4%  dead 0
+step  2500  batch loss 1.8844  train 2.0998  val 2.3413 (3.378 bits/char)  |grad| 1.7841  tanh saturated 55.7%  dead 0
+step  2600  batch loss 2.1797  train 2.1153  val 2.3230 (3.351 bits/char)  |grad| 1.8849  tanh saturated 56.2%  dead 0
+step  2700  batch loss 2.3776  train 2.1198  val 2.3203 (3.347 bits/char)  |grad| 1.7827  tanh saturated 56.7%  dead 0
+step  2800  batch loss 1.8521  train 2.1120  val 2.3514 (3.392 bits/char)  |grad| 1.7244  tanh saturated 57.1%  dead 0
+step  2900  batch loss 2.1786  train 2.1227  val 2.3345 (3.368 bits/char)  |grad| 1.9697  tanh saturated 57.5%  dead 0
+step  3000  batch loss 1.9699  train 2.1088  val 2.3468 (3.386 bits/char)  |grad| 1.9008  tanh saturated 57.2%  dead 0
+step  3100  batch loss 2.1287  train 2.1023  val 2.3275 (3.358 bits/char)  |grad| 1.9137  tanh saturated 57.6%  dead 0
+step  3200  batch loss 2.4615  train 2.0797  val 2.3519 (3.393 bits/char)  |grad| 1.8857  tanh saturated 57.8%  dead 0
+step  3300  batch loss 1.7200  train 2.0476  val 2.3481 (3.388 bits/char)  |grad| 1.6997  tanh saturated 58.2%  dead 0
+step  3400  batch loss 2.1404  train 2.0795  val 2.3946 (3.455 bits/char)  |grad| 1.8466  tanh saturated 58.7%  dead 0
+step  3500  batch loss 2.3701  train 2.0905  val 2.3596 (3.404 bits/char)  |grad| 1.9280  tanh saturated 58.6%  dead 0
+step  3600  batch loss 2.3784  train 2.0702  val 2.3470 (3.386 bits/char)  |grad| 1.9838  tanh saturated 59.3%  dead 0
+step  3700  batch loss 1.9599  train 2.0574  val 2.2990 (3.317 bits/char)  |grad| 1.7401  tanh saturated 59.2%  dead 0
+step  3800  batch loss 2.1819  train 2.0543  val 2.3056 (3.326 bits/char)  |grad| 1.8179  tanh saturated 59.8%  dead 0
+step  3900  batch loss 1.9922  train 2.0409  val 2.2528 (3.250 bits/char)  |grad| 1.8613  tanh saturated 59.8%  dead 0
+step  4000  batch loss 1.9720  train 2.0327  val 2.2411 (3.233 bits/char)  |grad| 1.9083  tanh saturated 59.9%  dead 0
+step  4100  batch loss 1.5794  train 2.0533  val 2.2725 (3.278 bits/char)  |grad| 1.6450  tanh saturated 60.4%  dead 0
+step  4200  batch loss 1.8706  train 2.0713  val 2.2580 (3.258 bits/char)  |grad| 1.7861  tanh saturated 60.6%  dead 0
+step  4300  batch loss 1.7385  train 2.0410  val 2.2583 (3.258 bits/char)  |grad| 1.7657  tanh saturated 60.6%  dead 0
+step  4400  batch loss 2.2036  train 2.0526  val 2.2539 (3.252 bits/char)  |grad| 2.0681  tanh saturated 61.1%  dead 0
+step  4500  batch loss 2.0532  train 1.9944  val 2.2725 (3.279 bits/char)  |grad| 1.8830  tanh saturated 60.9%  dead 0
+step  4600  batch loss 2.4487  train 2.0602  val 2.2465 (3.241 bits/char)  |grad| 2.0199  tanh saturated 61.1%  dead 0
+step  4700  batch loss 2.0809  train 2.0382  val 2.2601 (3.261 bits/char)  |grad| 1.8599  tanh saturated 61.7%  dead 0
+step  4800  batch loss 2.1062  train 2.0165  val 2.2639 (3.266 bits/char)  |grad| 1.8066  tanh saturated 61.5%  dead 0
+step  4900  batch loss 2.0824  train 2.0259  val 2.2567 (3.256 bits/char)  |grad| 2.0952  tanh saturated 62.1%  dead 0
+step  5000  batch loss 1.9734  train 2.0231  val 2.2864 (3.299 bits/char)  |grad| 1.9751  tanh saturated 62.3%  dead 0
+step  5100  batch loss 2.0641  train 2.0157  val 2.2403 (3.232 bits/char)  |grad| 1.9845  tanh saturated 62.1%  dead 0
+step  5200  batch loss 2.0100  train 1.9841  val 2.3059 (3.327 bits/char)  |grad| 1.9704  tanh saturated 62.3%  dead 0
+step  5300  batch loss 1.7139  train 1.9745  val 2.2593 (3.260 bits/char)  |grad| 2.0869  tanh saturated 62.5%  dead 0
+step  5400  batch loss 1.8878  train 1.9944  val 2.2510 (3.248 bits/char)  |grad| 1.8257  tanh saturated 62.5%  dead 0
+step  5500  batch loss 2.0552  train 2.0138  val 2.2327 (3.221 bits/char)  |grad| 2.0069  tanh saturated 62.6%  dead 0
+step  5600  batch loss 1.6253  train 1.9973  val 2.2516 (3.248 bits/char)  |grad| 1.6774  tanh saturated 63.2%  dead 0
+step  5700  batch loss 1.8202  train 1.9878  val 2.2417 (3.234 bits/char)  |grad| 1.6707  tanh saturated 63.4%  dead 0
+step  5800  batch loss 1.9829  train 2.0200  val 2.2497 (3.246 bits/char)  |grad| 1.9659  tanh saturated 63.4%  dead 0
+step  5900  batch loss 2.2722  train 2.0384  val 2.2180 (3.200 bits/char)  |grad| 2.0640  tanh saturated 63.4%  dead 0
+step  6000  batch loss 2.0212  train 1.9727  val 2.2316 (3.219 bits/char)  |grad| 2.0000  tanh saturated 63.5%  dead 0
+step  6100  batch loss 1.7779  train 1.9664  val 2.2356 (3.225 bits/char)  |grad| 1.7916  tanh saturated 63.8%  dead 0
+step  6200  batch loss 2.0388  train 2.0251  val 2.2343 (3.223 bits/char)  |grad| 1.8851  tanh saturated 63.9%  dead 0
+step  6300  batch loss 1.8114  train 1.9816  val 2.2416 (3.234 bits/char)  |grad| 1.8036  tanh saturated 64.1%  dead 0
+step  6400  batch loss 1.9745  train 1.9937  val 2.2415 (3.234 bits/char)  |grad| 1.7980  tanh saturated 64.2%  dead 0
+step  6500  batch loss 1.9818  train 1.9695  val 2.2405 (3.232 bits/char)  |grad| 1.9164  tanh saturated 64.2%  dead 0
+step  6600  batch loss 1.5368  train 1.9451  val 2.2191 (3.201 bits/char)  |grad| 1.7077  tanh saturated 64.2%  dead 0
+step  6700  batch loss 2.1775  train 2.0302  val 2.2495 (3.245 bits/char)  |grad| 1.8308  tanh saturated 64.5%  dead 0
+step  6800  batch loss 2.1523  train 1.9922  val 2.2036 (3.179 bits/char)  |grad| 1.8850  tanh saturated 64.7%  dead 0
+step  6900  batch loss 2.1843  train 1.9727  val 2.2189 (3.201 bits/char)  |grad| 2.0189  tanh saturated 64.7%  dead 0
+step  7000  batch loss 1.9441  train 1.9670  val 2.2117 (3.191 bits/char)  |grad| 1.8307  tanh saturated 64.8%  dead 0
+step  7100  batch loss 2.3908  train 1.9546  val 2.2508 (3.247 bits/char)  |grad| 1.9582  tanh saturated 64.8%  dead 0
+step  7200  batch loss 2.5063  train 1.9886  val 2.2707 (3.276 bits/char)  |grad| 1.8329  tanh saturated 65.1%  dead 0
+step  7300  batch loss 2.2097  train 1.9350  val 2.2701 (3.275 bits/char)  |grad| 1.9446  tanh saturated 65.3%  dead 0
+step  7400  batch loss 1.7114  train 1.9219  val 2.2655 (3.268 bits/char)  |grad| 1.6846  tanh saturated 65.5%  dead 0
+step  7500  batch loss 1.9115  train 1.9126  val 2.2529 (3.250 bits/char)  |grad| 1.7903  tanh saturated 65.5%  dead 0
+step  7600  batch loss 2.4275  train 1.9174  val 2.2711 (3.277 bits/char)  |grad| 1.9623  tanh saturated 65.5%  dead 0
+step  7700  batch loss 2.2431  train 1.9589  val 2.2487 (3.244 bits/char)  |grad| 1.9203  tanh saturated 65.7%  dead 0
+step  7800  batch loss 1.9854  train 1.9528  val 2.2870 (3.299 bits/char)  |grad| 1.7508  tanh saturated 65.9%  dead 0
+step  7900  batch loss 2.0263  train 1.9559  val 2.2667 (3.270 bits/char)  |grad| 1.8962  tanh saturated 65.8%  dead 0
+step  8000  batch loss 1.6071  train 1.9464  val 2.2326 (3.221 bits/char)  |grad| 1.6307  tanh saturated 65.9%  dead 0
+step  8100  batch loss 2.0104  train 1.9108  val 2.2135 (3.193 bits/char)  |grad| 1.6644  tanh saturated 66.0%  dead 0
+step  8200  batch loss 2.1703  train 1.9525  val 2.2561 (3.255 bits/char)  |grad| 1.9003  tanh saturated 66.2%  dead 0
+step  8300  batch loss 2.0647  train 1.9264  val 2.2556 (3.254 bits/char)  |grad| 1.8863  tanh saturated 66.2%  dead 0
+step  8400  batch loss 1.7542  train 1.9077  val 2.2363 (3.226 bits/char)  |grad| 1.7666  tanh saturated 66.1%  dead 0
+step  8500  batch loss 2.1133  train 1.9250  val 2.2500 (3.246 bits/char)  |grad| 2.0227  tanh saturated 66.2%  dead 0
+step  8600  batch loss 2.2254  train 1.9416  val 2.2819 (3.292 bits/char)  |grad| 1.7956  tanh saturated 66.3%  dead 0
+step  8700  batch loss 1.6504  train 1.9144  val 2.2523 (3.249 bits/char)  |grad| 1.6488  tanh saturated 66.5%  dead 0
+step  8800  batch loss 1.9134  train 1.9182  val 2.2079 (3.185 bits/char)  |grad| 2.0157  tanh saturated 66.5%  dead 0
+step  8900  batch loss 1.7648  train 1.9296  val 2.2481 (3.243 bits/char)  |grad| 1.8663  tanh saturated 66.6%  dead 0
+step  9000  batch loss 2.1562  train 1.9375  val 2.2264 (3.212 bits/char)  |grad| 1.9319  tanh saturated 67.0%  dead 0
+step  9100  batch loss 2.5847  train 1.9442  val 2.2535 (3.251 bits/char)  |grad| 1.9920  tanh saturated 66.9%  dead 0
+step  9200  batch loss 2.2079  train 1.9344  val 2.2478 (3.243 bits/char)  |grad| 1.7489  tanh saturated 66.9%  dead 0
+step  9300  batch loss 2.3667  train 1.9178  val 2.2282 (3.215 bits/char)  |grad| 1.9974  tanh saturated 66.7%  dead 0
+step  9400  batch loss 2.4558  train 1.9096  val 2.2537 (3.251 bits/char)  |grad| 1.9931  tanh saturated 66.8%  dead 0
+step  9500  batch loss 1.9436  train 1.9169  val 2.2499 (3.246 bits/char)  |grad| 1.8452  tanh saturated 66.9%  dead 0
+step  9600  batch loss 1.7916  train 1.9363  val 2.2650 (3.268 bits/char)  |grad| 1.7585  tanh saturated 67.1%  dead 0
+step  9700  batch loss 1.7846  train 1.9532  val 2.2216 (3.205 bits/char)  |grad| 2.0553  tanh saturated 67.1%  dead 0
+step  9800  batch loss 2.1112  train 1.9132  val 2.2313 (3.219 bits/char)  |grad| 1.8519  tanh saturated 67.3%  dead 0
+step  9900  batch loss 2.0092  train 1.9288  val 2.2398 (3.231 bits/char)  |grad| 1.8749  tanh saturated 67.1%  dead 0
+step  9999  batch loss 1.9321  train 1.9145  val 2.1953 (3.167 bits/char)  |grad| 1.6485  tanh saturated 67.1%  dead 0
+
+trained 10000 steps in 95.10s (95.10s excluding throttle); after training: train 1.9157  val 2.1965
+sample:
+UCINIUS:
+God, pron gath enoud by wistywakn ligint jistur will un blessen sccoutire
+Wornow, wor, Calnor, thoug, breath in an her hone of woren you framm gorsink
+Merti'fore and ey?
+
+COMINIO:
+Go: that should
+ond, it ligh,
+US evin?-Hi, and but thounse ut chan simptpy.
+
+COMINIUS:
+My hather,
+And to Rome s
+
+final benchmark (whole val split, 111540 tokens, 111540 characters, stride 1, mean context 8.0 characters): 2.9772 bits/char (2.0636 nats/token)  [6.4s]
+wrote runs\lad_mlp (snapshots 37.4 MB)

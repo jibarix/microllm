@@ -1,0 +1,13 @@
+# Normalize text files in the repository; check out with the platform's line endings.
+* text=auto
+
+# Launchers need their own line endings on every platform.
+*.bat text eol=crlf
+*.command text eol=lf
+*.sh text eol=lf
+
+# Training text is hashed into every run's provenance (data_sha256): never rewrite its bytes.
+data/*.txt -text
+
+# Run files are single-line JSON of many megabytes: no text diffs.
+runs/** -diff linguist-generated

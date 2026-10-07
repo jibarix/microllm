@@ -1,0 +1,99 @@
+microllm 0.1.0 · run lad_tf_bpe512 · model transformer · started at unix time 1791326417
+config: steps=2294 examples/step=32 context=32 embedding_dim=48 heads=4 layers=2 mlp_hidden=192 ln_eps=0.00001 init_std=0.02 optimizer=adamw lr=0.003 weight_decay=0.1 seed=42 eval_every=100 eval_batches=20 snap_every=500 throttle_ms=0 threads=4
+learning rate: linear warm-up over 100 steps to 0.003, then a cosine down to 0.00030000000000000003 at the last step
+data: data/tinyshakespeare.txt · 1115394 characters · sha256 86c4e6aa9db7c042ec79f339dcb96d42b0075e16b8fc2e86bf0ca57e2dc565ed
+tokenizer: BPE, 512 tokens (65 base characters + 447 merges) learned on the train split in 3.9s; characters per token: train 2.180, val 2.066
+--chars 5120000: 2294 steps
+binary: exe_sha256=0fa6699c1837960ec332258cab63a0aa1be2c1a923416d99227c522918604df9 · rustc=rustc 1.95.0 (59807616e 2026-04-14) · profile=release · target=x86_64-pc-windows-msvc · version=0.1.0
+
+gradcheck before training:
+check                                                elements  max abs err  max rel err  result
+add                                                        24    1.898e-14    4.022e-13  PASS
+mul                                                        24    3.128e-14    3.921e-11  PASS
+matmul                                                     25    4.685e-14    6.425e-12  PASS
+add_row                                                    16    2.870e-14    5.486e-13  PASS
+tanh                                                       12    5.086e-14    4.620e-13  PASS
+embedding (repeated ids)                                   18    8.135e-14    4.626e-10  PASS
+cross_entropy                                              20    7.943e-16    9.796e-12  PASS
+mean                                                       12    1.253e-14    2.939e-13  PASS
+reshape (4x6 → 3x8)                                        24    3.890e-14    3.626e-11  PASS
+reuse: x*x + x                                             12    1.308e-13    3.530e-10  PASS
+reuse: x + x                                               12    4.219e-14    1.556e-12  PASS
+mlp: embedding→matmul→add_row→tanh→cross_entropy           42    9.551e-13    1.137e-10  PASS
+mlp model (real forward code, tiny)                        91    1.777e-11    8.675e-11  PASS
+scale                                                      12    8.066e-15    4.360e-13  PASS
+mul_row                                                    16    1.958e-14    8.053e-13  PASS
+gelu (−4 … 3.7, including 0)                               10    2.773e-14    1.452e-10  PASS
+normalize (layernorm core)                                 15    6.404e-13    3.312e-11  PASS
+normalize (rows nearly constant)                            8     1.772e-6     2.352e-8  PASS
+layernorm: normalize→mul_row→add_row (x, gain, bias)       20    5.053e-13    5.812e-12  PASS
+split_heads (2·3 x 2·2 → 2·2·3 x 2)                        24    3.465e-14    9.073e-12  PASS
+merge_heads (2·2·3 x 2 → 2·3 x 2·2)                        24    3.448e-14    8.044e-12  PASS
+batch_matmul (2 blocks of 3x4 · 4x3)                       48    8.421e-14    2.459e-11  PASS
+batch_matmul, transposed (2 blocks of 3x4 · (3x4)ᵀ)        48    2.396e-13    1.246e-11  PASS
+causal_softmax (2 blocks, T = 3)                           18    1.375e-14    3.469e-10  PASS
+attention: split→q·kᵀ→scale→causal_softmax→·v→merge        72    6.840e-14    4.626e-10  PASS
+transformer model (real forward code, tiny)               571    7.479e-12     7.055e-8  PASS
+
+transformer: vocab 512, 107840 params, 460433 train / 53996 val tokens (1003854 / 111540 characters), baseline loss ln(512) = 6.2383
+trace: 15 snapshots × 12421314 numbers; detail = summary (auto: full snapshots would be about 994 MB (limit 300 MB); use --detail full to force)
+
+step     0  batch loss 6.2440  train 6.2476  val 6.2508 (4.351 bits/char)  |grad| 1.1374  lr 3.00e-5
+step   100  batch loss 4.6284  train 4.6312  val 4.5657 (3.178 bits/char)  |grad| 0.5974  lr 3.00e-3
+step   200  batch loss 3.9111  train 4.0362  val 4.0842 (2.843 bits/char)  |grad| 0.8219  lr 2.99e-3
+step   300  batch loss 3.8990  train 3.8546  val 3.9358 (2.739 bits/char)  |grad| 0.9962  lr 2.94e-3
+step   400  batch loss 3.6178  train 3.7319  val 3.8719 (2.695 bits/char)  |grad| 0.9003  lr 2.88e-3
+step   500  batch loss 3.6704  train 3.6652  val 3.8036 (2.648 bits/char)  |grad| 0.9272  lr 2.78e-3
+step   600  batch loss 3.6645  train 3.6071  val 3.7892 (2.637 bits/char)  |grad| 0.9997  lr 2.67e-3
+step   700  batch loss 3.5721  train 3.5472  val 3.7275 (2.594 bits/char)  |grad| 1.0281  lr 2.53e-3
+step   800  batch loss 3.4163  train 3.5030  val 3.7235 (2.592 bits/char)  |grad| 0.9318  lr 2.38e-3
+step   900  batch loss 3.2795  train 3.4626  val 3.6464 (2.538 bits/char)  |grad| 1.1340  lr 2.21e-3
+step  1000  batch loss 3.4176  train 3.4194  val 3.6526 (2.542 bits/char)  |grad| 1.0210  lr 2.03e-3
+step  1100  batch loss 3.4194  train 3.3778  val 3.5915 (2.500 bits/char)  |grad| 1.1285  lr 1.84e-3
+step  1200  batch loss 3.1198  train 3.3457  val 3.5717 (2.486 bits/char)  |grad| 1.0576  lr 1.64e-3
+step  1300  batch loss 3.4937  train 3.3197  val 3.5569 (2.476 bits/char)  |grad| 1.0646  lr 1.45e-3
+step  1400  batch loss 3.2992  train 3.2796  val 3.5238 (2.453 bits/char)  |grad| 1.0362  lr 1.26e-3
+step  1500  batch loss 3.0711  train 3.2641  val 3.5121 (2.445 bits/char)  |grad| 1.1911  lr 1.08e-3
+step  1600  batch loss 3.1965  train 3.2364  val 3.4906 (2.430 bits/char)  |grad| 1.1607  lr 9.12e-4
+step  1700  batch loss 3.1773  train 3.2208  val 3.4739 (2.418 bits/char)  |grad| 1.1849  lr 7.59e-4
+step  1800  batch loss 3.1261  train 3.1994  val 3.4552 (2.405 bits/char)  |grad| 1.1867  lr 6.23e-4
+step  1900  batch loss 3.2873  train 3.1841  val 3.4469 (2.399 bits/char)  |grad| 1.1999  lr 5.08e-4
+step  2000  batch loss 3.2994  train 3.1728  val 3.4256 (2.384 bits/char)  |grad| 1.2526  lr 4.17e-4
+step  2100  batch loss 3.2434  train 3.1626  val 3.4375 (2.393 bits/char)  |grad| 1.2123  lr 3.51e-4
+step  2200  batch loss 3.2434  train 3.1553  val 3.4332 (2.390 bits/char)  |grad| 1.2946  lr 3.12e-4
+step  2293  batch loss 3.1917  train 3.1495  val 3.4238 (2.383 bits/char)  |grad| 1.2732  lr 3.00e-4
+
+trained 2294 steps in 465.92s (465.92s excluding throttle); after training: train 3.1493  val 3.4244
+sample:
+I'll not
+Amon it, sterns more be as hath a fear.
+Romeo, me nothing I resoged digies,
+Some,-hal are pretttall.' 'balt I'll wise:
+The man I would hope his invour,
+And well not the vasure to's unjure.
+Forsriius Marcius Marcius, tongue, seemperor,
+thoply me as fooer sprance, and go you:
+Whobable and her after thou onceive to was, my sign,
+But if you a high of my please,
+And all for the visteress gazets them body for cheps flames,
+on our looked dissundue'd his death, night
+In volenting not too, come, if the remold
+son the child is: praite in that voice;
+If Efrumminenty up upon me.
+
+Speak deatured this?
+Ay?
+Peace pray now behold as do for I lifide your
+
+final benchmark (whole val split, 53996 tokens, 111540 characters, stride 16, mean context 50.6 characters): 2.3574 bits/char (3.3755 nats/token)  [6.5s]
+head ablation (first 7841 val tokens = 16384 characters, baseline 2.2104 bits/char), change in bits/char with one head off:
+  L0 head 0: +0.1586
+  L0 head 1: +0.2256
+  L0 head 2: +0.0802
+  L0 head 3: +0.1255
+  L1 head 0: +0.0404
+  L1 head 1: +0.0157
+  L1 head 2: +0.0310
+  L1 head 3: +0.0062
+  [9.4s]
+wrote runs\lad_tf_bpe512 (snapshots 72.7 MB)

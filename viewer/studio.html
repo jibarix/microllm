@@ -1,0 +1,657 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>microllm · studio</title>
+<style>
+.viz-root{color-scheme:light;
+  --paper:#f6f4ee;--surface:#ffffff;--ink:#202f31;--muted:#5a6b6c;--line:#d5ddda;--grid:#e6ebe9;
+  --train:#1c5eae;--calc:#126854;--warn:#8a5a00;--fail:#b3261e;--note:#1c5eae}
+@media (prefers-color-scheme:dark){.viz-root{color-scheme:dark;
+  --paper:#151a1a;--surface:#1d2323;--ink:#eef2f1;--muted:#a9b6b4;--line:#33403f;--grid:#2a3433;
+  --train:#6da7ec;--calc:#4cc39b;--warn:#e0a63a;--fail:#ff8a80;--note:#6da7ec}}
+*{box-sizing:border-box}
+body{margin:0}
+[hidden]{display:none!important}
+.viz-root{background:var(--paper);color:var(--ink);font:15px/1.5 system-ui,sans-serif;min-height:100vh}
+a{color:var(--train)}
+h2{font-size:17px;line-height:1.3;margin:0 0 4px}
+h3{font-size:13px;margin:14px 0 6px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+p{margin:4px 0 10px}
+.lede{color:var(--muted);font-size:13px;max-width:900px}
+.top{border-bottom:1px solid var(--line);padding:10px 20px 8px;display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
+.eyebrow{font-size:11px;font-weight:750;letter-spacing:.14em;text-transform:uppercase;color:var(--calc)}
+.title{font-size:17px;font-weight:750}
+/* site menu, shared with index.html: the two places to go */
+.sitenav{display:flex;border:1px solid var(--line);border-radius:999px;padding:3px;gap:2px;background:var(--surface)}
+.sitenav a{padding:5px 14px;border-radius:999px;font-size:14px;font-weight:650;color:var(--muted);text-decoration:none;white-space:nowrap}
+.sitenav a:hover{background:var(--grid);color:var(--ink)}
+.sitenav a[aria-current=page]{background:var(--calc);color:var(--surface)}
+.offline{max-width:760px;margin:40px auto;padding:20px 24px}
+/* the two first choices */
+.choices{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media (max-width:900px){.choices{grid-template-columns:1fr}}
+.choice{display:flex;flex-direction:column;gap:6px;border:1px solid var(--line);border-radius:12px;padding:18px 20px;background:var(--paper);color:var(--ink);text-decoration:none;min-height:170px}
+a.choice:hover{border-color:var(--calc)}
+.choice b{font-size:21px;line-height:1.25}
+.choice small{color:var(--muted);font-size:14px;line-height:1.45}
+.choice .go{margin-top:auto;font-weight:700;color:var(--calc)}
+.choice button.big{margin-top:auto;align-self:flex-start;font-size:16px;padding:8px 22px;min-height:42px}
+.hero .risk{margin-top:16px}
+details.advanced{grid-column:span 12;border:1px solid var(--line);border-radius:12px;background:var(--surface);padding:12px 16px}
+details.advanced>summary{cursor:pointer;font-weight:700;font-size:15px}
+details.advanced>summary span{font-weight:400;color:var(--muted);font-size:13px}
+.adv-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;margin-top:14px}
+#valleyNote{margin:6px 0 0;font-size:14px}
+.offline code{font-family:ui-monospace,Consolas,monospace;background:var(--paper);border:1px solid var(--line);border-radius:6px;padding:2px 6px}
+main{padding:16px 20px 40px;display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:16px;max-width:1500px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.span-4{grid-column:span 4}.span-5{grid-column:span 5}.span-7{grid-column:span 7}.span-8{grid-column:span 8}.span-12{grid-column:span 12}
+@media (max-width:1100px){.span-4,.span-5,.span-7,.span-8{grid-column:span 12}}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px 14px;margin:10px 0}
+.stat{border-top:2px solid var(--line);padding-top:6px}
+.stat strong{display:block;font-size:18px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.stat.bad{border-top-color:var(--fail)}.stat.warn{border-top-color:var(--warn)}.stat.good{border-top-color:var(--calc)}
+button,select,input{font:inherit;color:var(--ink)}
+button,select{min-height:34px;border:1px solid var(--line);border-radius:8px;background:var(--surface);padding:4px 12px;cursor:pointer}
+button:hover:not(:disabled){background:var(--grid)}
+button:disabled{opacity:.5;cursor:not-allowed}
+button.primary{background:var(--calc);color:var(--surface);border-color:var(--calc);font-weight:700}
+button.primary:hover:not(:disabled){background:var(--calc);filter:brightness(1.1)}
+button.danger{color:var(--fail);border-color:var(--fail);font-weight:700}
+input[type=text],input[type=number]{width:100%;min-height:32px;border:1px solid var(--line);border-radius:7px;padding:3px 8px;background:var(--paper)}
+select{width:100%}
+input:disabled,select:disabled{opacity:.45}
+:focus-visible{outline:3px solid #137c78;outline-offset:2px}
+.presets{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
+.preset{text-align:left;padding:10px 12px;border-radius:10px;display:flex;flex-direction:column;gap:3px;min-height:110px}
+.preset b{font-size:14px}
+.preset small{color:var(--muted);font-size:12px;line-height:1.35}
+.preset .fit{font-size:12px;font-weight:650}
+.preset.chosen{border:2px solid var(--calc)}
+.fit.ok{color:var(--calc)}.fit.tight{color:var(--warn)}.fit.no{color:var(--fail)}
+.rec{font-size:11px;font-weight:750;color:var(--surface);background:var(--calc);border-radius:999px;padding:1px 8px;align-self:flex-start}
+.groups{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:4px 22px}
+.field{display:grid;grid-template-columns:120px 1fr;gap:2px 10px;align-items:center;margin:5px 0}
+.field label{font-size:13px;font-weight:600}
+.field .help{grid-column:2;font-size:11.5px;color:var(--muted);line-height:1.3}
+.field .why{margin-left:5px;width:17px;height:17px;padding:0;border-radius:50%;font-size:11px;font-weight:700;line-height:15px;vertical-align:1px;cursor:pointer}
+.field .why[aria-expanded="true"]{background:var(--note);color:#fff;border-color:var(--note)}
+.field .plain{grid-column:2;font-size:12.5px;line-height:1.4;padding:6px 9px;margin-top:3px;border-left:3px solid var(--note);background:color-mix(in srgb,var(--note) 9%,transparent);border-radius:4px}
+.field .msg{grid-column:2;font-size:12px;font-weight:600;line-height:1.3}
+.field.err input,.field.err select{border-color:var(--fail);box-shadow:0 0 0 1px var(--fail)}
+.field.err .msg{color:var(--fail)}
+.field.wrn .msg{color:var(--warn)}
+.field.adj .msg{color:var(--note)}
+.checks{display:flex;gap:12px;flex-wrap:wrap;font-size:13px}
+.verdict{border-radius:10px;padding:10px 14px;margin:8px 0;font-weight:650;border:1px solid}
+.verdict.ok{border-color:var(--calc);color:var(--calc)}
+.verdict.warn{border-color:var(--warn);color:var(--warn)}
+.verdict.bad{border-color:var(--fail);color:var(--fail);background:color-mix(in srgb,var(--fail) 7%,transparent)}
+ul.list{margin:4px 0;padding-left:20px;font-size:13px}
+ul.list li{margin:3px 0}
+.risk{border-left:4px solid var(--warn);padding:6px 12px;font-size:13.5px;background:color-mix(in srgb,var(--warn) 6%,transparent);border-radius:0 8px 8px 0}
+.risk ul{margin:6px 0;padding-left:18px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:10px 0}
+pre.log{background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:12px;max-height:340px;overflow:auto;white-space:pre-wrap;margin:8px 0 0}
+.muted{color:var(--muted)}
+.mono{font-family:ui-monospace,Consolas,monospace;font-size:12.5px;word-break:break-all}
+.badge{font-size:13px;font-weight:700;padding:3px 10px;border-radius:999px;border:1px solid var(--line)}
+.badge.running{color:var(--calc);border-color:var(--calc)}.badge.running::before{content:"● "}
+.badge.failed{color:var(--fail);border-color:var(--fail)}
+</style>
+</head>
+<body>
+<div class="viz-root">
+<header class="top">
+  <div><div class="eyebrow">microllm · studio</div><div class="title">Train a model on this machine</div></div>
+  <nav class="sitenav" aria-label="Site"><a href="index.html">Past trainings</a><a href="#" aria-current="page">Train a new model</a></nav>
+</header>
+<section class="panel offline" id="offline" hidden>
+  <h2>The studio is not running here</h2>
+  <p>This page starts training on your computer, so it needs the small local program that comes with microllm. In the microllm folder, double-click <code>START_HERE.bat</code> (Windows) or <code>START_HERE.command</code> (Mac), or run <code>cargo run --release</code> in a terminal.</p>
+  <p>It opens this page at an address like <a href="http://127.0.0.1:8790/">http://127.0.0.1:8790/</a>. It listens on this computer only.</p>
+  <p class="muted">Past trainings still open without it: <a href="index.html">Past trainings →</a></p>
+</section>
+<main id="studio">
+  <section class="panel span-12 hero" aria-label="Start here">
+    <div class="choices">
+      <a class="choice" id="exploreCard" href="index.html">
+        <span class="eyebrow">Look first</span>
+        <b>Explore a trained model</b>
+        <small id="exploreBlurb">A 4.8-million-weight transformer that learned to write children's stories: how its loss fell, what it writes, the valley it walked down, and the arithmetic of one training step.</small>
+        <span class="go">Open it →</span>
+      </a>
+      <div class="choice">
+        <span class="eyebrow">Your turn</span>
+        <b>Train my first model</b>
+        <small>A small transformer reads Shakespeare and learns to write like it, on this computer, in about 2 minutes. A live view opens in a new tab so you can watch the text go from noise to Shakespeare-shaped lines. Afterwards it measures the valley training walked down (about a minute more).</small>
+        <button class="primary big" id="firstStart" disabled>Start training</button>
+        <span class="muted" id="firstWhy"></span>
+      </div>
+    </div>
+    <div class="risk" id="riskBox">
+      <b>Training is the one part that is not gentle on your computer.</b>
+      <ul>
+        <li>It keeps the processor (and the graphics card, with GPU) busy for the whole run. The computer can get slow, hot and loud.</li>
+        <li>The studio starts it at low priority and suggests settings below what this machine can do, but estimates can be wrong. If memory runs out the system can freeze, or the operating system can end the run, or, on Windows, close the window the studio runs in.</li>
+        <li>Stopping a run leaves it unfinished in <span class="mono">runs/</span>; finished runs open in Past trainings.</li>
+        <li>Built and tested on Windows. On macOS and Linux it should run on the processor only; that is untested.</li>
+      </ul>
+      <label><input type="checkbox" id="ack"> I understand and start at my own risk.</label>
+    </div>
+  </section>
+
+  <section class="panel span-12" id="runPanel" aria-labelledby="runH" hidden>
+    <h2 id="runH">Current run</h2>
+    <div class="row">
+      <span id="badge"></span>
+      <a id="liveLink" hidden target="_blank" rel="noopener">Open the live view →</a>
+      <button class="danger" id="stop" hidden>Stop</button>
+    </div>
+    <p id="valleyNote" hidden></p>
+    <p class="muted" id="runMsg"></p>
+    <pre class="log" id="log" hidden></pre>
+  </section>
+
+  <details class="advanced" id="advanced">
+    <summary>Advanced: choose the model and every setting yourself <span>(bigger models, other texts, the GPU)</span></summary>
+    <div class="adv-grid">
+  <section class="panel span-4" aria-labelledby="sysH">
+    <h2 id="sysH">This machine</h2>
+    <p class="lede">Read only: the studio looks at cores, memory and free disk, and changes nothing.</p>
+    <div class="stats" id="sysStats"></div>
+    <p class="lede" id="sysNote"></p>
+    <button id="recheck">Check again</button>
+  </section>
+
+  <section class="panel span-8" aria-labelledby="preH">
+    <h2 id="preH">Start from</h2>
+    <p class="lede">Each card is a setting this project has trained before. "Fits" means its estimated memory stays under half of the memory free right now and its files under half of the free disk; the recommended card is the biggest one that fits that way. You can change anything below.</p>
+    <div class="presets" id="presets"></div>
+  </section>
+
+  <section class="panel span-7" aria-labelledby="setH">
+    <h2 id="setH">Settings</h2>
+    <p class="lede">Blank fields use the default shown in grey. Every change is checked with the same rules as <span class="mono">microllm train</span>, plus the ones training would only find later. Settings that depend on each other are adjusted for you, and the adjustment is shown in blue.</p>
+    <div class="groups" id="form"></div>
+  </section>
+
+  <section class="panel span-5" aria-labelledby="estH">
+    <h2 id="estH">What this run needs</h2>
+    <div id="verdict"></div>
+    <div class="stats" id="estStats"></div>
+    <div class="row"><button id="measure">Time it on this machine</button><span class="muted" id="measureNote">Runs a few real training steps of this model in a separate process (a few seconds of full load).</span></div>
+    <ul class="list" id="estNotes"></ul>
+    <div class="row">
+      <label id="replaceWrap" hidden><input type="checkbox" id="replace"> replace the existing run of this name</label>
+    </div>
+    <div class="row">
+      <button class="primary" id="start" disabled>Start with these settings</button>
+    </div>
+    <p class="muted" id="startWhy"></p>
+  </section>
+    </div>
+  </details>
+</main>
+</div>
+<script>
+"use strict";
+const $ = id => document.getElementById(id);
+// Every studio API request carries this header; the server refuses /api requests without it.
+const API = {headers: {"X-Microllm-Studio": "1"}};
+const fmtBytes = b => b == null || !isFinite(b) ? "?" : b >= 1e9 ? (b / 1e9).toFixed(1) + " GB" : b >= 1e6 ? (b / 1e6).toFixed(0) + " MB" : (b / 1e3).toFixed(0) + " kB";
+const fmtNum = n => n >= 1e6 ? (n / 1e6).toFixed(2) + " M" : n >= 1e4 ? (n / 1e3).toFixed(1) + " k" : String(n);
+const fmtTime = s => !isFinite(s) ? "?" : s < 90 ? Math.round(s) + " s" : s < 5400 ? Math.round(s / 60) + " min" : s < 172800 ? (s / 3600).toFixed(1) + " h" : (s / 86400).toFixed(1) + " days";
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+
+// Fields, grouped. `models` lists the models a field applies to; `when` adds other conditions.
+const TF = ["transformer"], NN = ["mlp", "transformer"];
+const GROUPS = [
+  ["Run", [
+    {k: "run", plain: "The name of this model. Its files are saved in a folder with this name, so pick something you will recognise later.", label: "Name", type: "text", help: "Folder under runs/. Letters, digits, _ and -."},
+    {k: "data", plain: "The book the model learns from. It only ever learns to write like this text.", label: "Text", type: "select", help: "A .txt file in data/."},
+    {k: "val-frac", plain: "A slice of the text the model never trains on. We test it there, like a quiz with questions it has not seen, to check it learned and did not just memorise.", label: "Held out", help: "Share of the text kept for validation (the end of the file)."},
+    {k: "seed", plain: "The starting point for the random numbers. Keep the same seed and settings and you get exactly the same model again.", label: "Seed", help: "Same seed and settings, same run."},
+  ]],
+  ["Model", [
+    {k: "model", plain: "The kind of brain. Bigram only looks at the last letter. MLP looks at a few letters. Transformer can look back and pick out which earlier letters matter, and writes best.", label: "Model", type: "select", options: ["bigram", "mlp", "transformer"], help: "Bigram: a table. MLP: a small network. Transformer: attention."},
+    {k: "context", plain: "How far back the model can look. With 64, it sees the last 64 letters when guessing the next one.", label: "Context", models: NN, help: "Characters (tokens) the model sees at once."},
+    {k: "emb", plain: "How many numbers describe each letter inside the model. More numbers can hold more detail but make training slower.", label: "Width", models: NN, help: "Embedding size; for the transformer, the width of every layer."},
+    {k: "hidden", plain: "The size of the MLP's inner thinking layer. Bigger can learn more, but is slower.", label: "Hidden", models: ["mlp"], help: "Hidden units of the MLP."},
+    {k: "heads", plain: "How many separate ways the model can look back at once. Each head can learn to look for a different kind of clue.", label: "Heads", models: TF, help: "Attention heads; must divide the width."},
+    {k: "layers", plain: "How many times the model rethinks its guess. More layers can learn deeper patterns, but each one adds time.", label: "Layers", models: TF, help: "Transformer blocks."},
+    {k: "variant", plain: "Small optional tweaks we tried to make training faster. Leave them off if unsure.", label: "Variant", type: "checks", options: ["relu2", "qk-norm", "zero-init"], models: TF, help: "Optional changes from the speed experiments."},
+    {k: "vocab", plain: "The pieces the model reads. 0 means one letter at a time. A bigger number glues common letter groups (like \"the\") into single pieces, so it reads more text per step.", label: "Vocabulary", help: "0 = one token per character; above the alphabet, a BPE tokenizer of that size."},
+  ]],
+  ["Training", [
+    {k: "steps", plain: "How many times the model practises and corrects itself. More steps usually means better writing, and a longer wait.", label: "Steps", help: "Updates to make.", when: v => !(+v.chars > 0), whyOff: "set by Characters"},
+    {k: "chars", plain: "Another way to set the length: train until the model has read about this much text. Leave 0 to use Steps instead.", label: "Characters", help: "Instead of steps: train until about this many characters have been seen. 0 = use Steps."},
+    {k: "examples", plain: "How many pieces of text the model looks at before each correction. More gives steadier corrections but makes each step slower.", label: "Batch", help: "Examples per step."},
+    {k: "optimizer", plain: "The method used to correct the model after each practice. Muon is the fastest here for transformers; SGD is the simplest.", label: "Optimizer", type: "select", options: ["sgd", "adamw", "muon"], help: "Muon is for the transformer only."},
+    {k: "lr", plain: "How big each correction is. Too big and learning goes wild; too small and it crawls.", label: "Learning rate", help: "Peak step size."},
+    {k: "lr-min", plain: "How small the corrections get by the end. Corrections shrink over time so the model can settle down.", label: "Final rate", help: "Where the schedule ends; at most the learning rate."},
+    {k: "warmup", plain: "A gentle start: corrections begin tiny and grow over these first steps, so the model is not shaken at the beginning.", label: "Warm-up", help: "Steps of linear warm-up; fewer than the steps."},
+    {k: "wsd", plain: "How the corrections shrink. 0 shrinks them smoothly the whole time; a number like 0.2 keeps them steady and shrinks them only in the last 20% of steps.", label: "WSD decay", help: "0 = cosine schedule; above 0, the share of steps spent decaying."},
+    {k: "muon-lr", plain: "The correction size Muon uses for the model's main grids of numbers.", label: "Muon rate", when: v => v.optimizer === "muon", whyOff: "Muon only", help: "Muon's peak rate for the block matrices."},
+    {k: "wd", plain: "A gentle pull that keeps the model's numbers from growing too large, which helps it generalise.", label: "Weight decay", when: v => v.optimizer !== "sgd", whyOff: "not with SGD", help: "AdamW/Muon only."},
+  ]],
+  ["Recording and machine", [
+    {k: "eval-every", plain: "How often to pause and give the model its quiz. Results appear on the live page.", label: "Evaluate every", help: "Steps between evaluations (losses, samples)."},
+    {k: "eval-batches", plain: "How many questions are in each quiz. More gives a more reliable score but takes longer.", label: "Eval batches", help: "Batches in each evaluation."},
+    {k: "sample-len", plain: "How much text the model writes each time it shows you what it can do.", label: "Sample length", help: "Characters of each generated sample."},
+    {k: "snap-every", plain: "How often to save a full picture of the model's insides, so you can replay how it changed. These are the biggest files.", label: "Snapshot every", help: "Steps between full snapshots (the biggest files)."},
+    {k: "snap-first", plain: "Save a picture of every one of the first few steps, where the model changes fastest.", label: "First snapshots", help: "Steps 0 … N−1 are all recorded."},
+    {k: "detail", plain: "How much to save in each picture. Auto saves less when the files would get too big.", label: "Detail", type: "select", options: ["auto", "full", "summary"], help: "auto picks summary when full snapshots would pass 300 MB."},
+    {k: "threads", plain: "How many of your processor's workers to use. More is faster, but leaves less for everything else on your computer.", label: "Threads", help: "Processor threads."},
+    {k: "device", plain: "Where to do the maths: your processor (cpu), or an NVIDIA graphics card (gpu) if you have one.", label: "Device", type: "select", options: ["cpu", "gpu"], help: "gpu needs an NVIDIA card."},
+    {k: "throttle-ms", plain: "A short pause after every step, so you can watch training happen slowly. 0 means no pause.", label: "Pause per step", help: "Milliseconds to wait after each step, to watch slowly."},
+  ]],
+];
+const FIELDS = GROUPS.flatMap(g => g[1]);
+const FIELD = Object.fromEntries(FIELDS.map(f => [f.k, f]));
+
+let SYS = null, CHECK = null, PROBE = null, PROBE_KEY = null, adjusted = {};
+
+function buildForm() {
+  $("form").innerHTML = GROUPS.map(([title, fields]) => `<div><h3>${title}</h3>${fields.map(f => {
+    let input;
+    if (f.type === "select") input = `<select id="f-${f.k}">${f.k === "data" ? "" : `<option value="">default</option>` + f.options.map(o => `<option>${o}</option>`).join("")}</select>`;
+    else if (f.type === "checks") input = `<div class="checks" id="f-${f.k}">${f.options.map(o => `<label><input type="checkbox" value="${o}"> ${o}</label>`).join("")}</div>`;
+    else input = `<input type="text" id="f-${f.k}" autocomplete="off" spellcheck="false">`;
+    const why = `<button type="button" class="why" aria-expanded="false" aria-controls="p-${f.k}" aria-label="What is ${esc(f.label)}?" title="What is this?">?</button>`;
+    return `<div class="field" id="w-${f.k}"><label for="f-${f.k}">${f.label}${why}</label>${input}<div class="msg" id="m-${f.k}"></div><div class="help">${f.help}</div><div class="plain" id="p-${f.k}" hidden>${esc(f.plain)}</div></div>`;
+  }).join("")}</div>`).join("");
+  for (const b of $("form").querySelectorAll(".why")) b.onclick = e => {
+    e.preventDefault();
+    const p = $(b.getAttribute("aria-controls")), open = p.hidden;
+    p.hidden = !open; b.setAttribute("aria-expanded", open);
+  };
+  for (const f of FIELDS) {
+    const el = $("f-" + f.k);
+    el.addEventListener(f.type === "text" || !f.type ? "input" : "change", () => onEdit(f.k));
+  }
+}
+
+function values() {
+  const v = {};
+  for (const f of FIELDS) {
+    const el = $("f-" + f.k);
+    if (f.type === "checks") {
+      const on = [...el.querySelectorAll("input:checked")].map(i => i.value);
+      if (on.length) v[f.k] = on.join(",");
+    } else if (el.value.trim() !== "") v[f.k] = el.value.trim();
+  }
+  return v;
+}
+function setValue(k, val) {
+  const el = $("f-" + k);
+  if (FIELD[k].type === "checks") for (const i of el.querySelectorAll("input")) i.checked = (val || "").split(",").includes(i.value);
+  else el.value = val == null ? "" : String(val);
+}
+// What the server will send: only fields that apply to this model and these choices.
+function sendable(v) {
+  const model = v.model || "bigram", out = {};
+  for (const [k, val] of Object.entries(v)) if (applies(FIELD[k], model, v)) out[k] = val;
+  return out;
+}
+function applies(f, model, v) {
+  return (!f.models || f.models.includes(model)) && (!f.when || f.when(v));
+}
+
+// Settings that depend on the one just changed, adjusted so the combination stays valid.
+function onEdit(k) {
+  adjusted = {};
+  const v = values(), model = v.model || "bigram", r = CHECK && CHECK.resolved || {};
+  const note = (key, msg) => { adjusted[key] = msg; };
+  if (k === "model") {
+    // Defaults differ per model; clear what was a default for the old one.
+    for (const key of ["steps", "examples", "context", "emb", "snap-every", "lr", "lr-min", "warmup", "wd", "muon-lr"]) setValue(key, "");
+    if (v.optimizer === "muon" && model !== "transformer") { setValue("optimizer", ""); note("optimizer", "Muon is for the transformer: back to the default optimizer"); }
+    if (!v.run || /^(bigram|mlp|transformer|studio_\w+)$/.test(v.run)) setValue("run", "studio_" + model);
+  }
+  if (k === "optimizer") {
+    for (const key of ["lr", "lr-min", "muon-lr"]) if (v[key]) { setValue(key, ""); note(key, "back to this optimizer's default"); }
+  }
+  if ((k === "emb" || k === "heads") && model === "transformer") {
+    const emb = +(v.emb || r.emb), heads = +(v.heads || r.heads);
+    if (emb > 0 && heads > 0 && emb % heads) {
+      if (k === "emb") {
+        let h = heads; while (emb % h) h--;
+        setValue("heads", h); note("heads", `set to ${h} so it divides the width ${emb}`);
+      } else {
+        const e = Math.max(heads, Math.round(emb / heads) * heads);
+        setValue("emb", e); note("emb", `set to ${e} so ${heads} heads divide it`);
+      }
+    }
+  }
+  if (k === "lr" && v["lr-min"] && +v["lr-min"] > +v.lr && +v.lr > 0) { setValue("lr-min", ""); note("lr-min", "was above the learning rate: back to the default (a tenth of it for the transformer)"); }
+  if (k === "lr-min" && v.lr === undefined && r.lr && +v["lr-min"] > +r.lr) { setValue("lr", v["lr-min"]); note("lr", "raised to the final rate"); }
+  if ((k === "steps" || k === "warmup") && !(+v.chars > 0)) {
+    const steps = +(values().steps || r.steps), warm = +(values().warmup || r.warmup);
+    if (steps > 0 && warm >= steps) {
+      const w = Math.floor(steps / 20);
+      setValue("warmup", w); note("warmup", `set to ${w} (5% of the steps): warm-up must be shorter than training`);
+    }
+  }
+  if (k === "chars" && +v.chars > 0) note("steps", "Characters sets the steps");
+  updateEnabled();
+  scheduleCheck();
+}
+
+function updateEnabled() {
+  const v = values(), model = v.model || "bigram";
+  for (const f of FIELDS) {
+    const on = applies(f, model, v);
+    const el = $("f-" + f.k);
+    for (const i of f.type === "checks" ? el.querySelectorAll("input") : [el]) i.disabled = !on;
+    if (!on) setMsg(f.k, "", f.models && !f.models.includes(model) ? `not used by the ${model}` : f.whyOff || "");
+  }
+  // Muon is only offered for the transformer.
+  const mu = [...$("f-optimizer").options].find(o => o.value === "muon");
+  mu.disabled = model !== "transformer";
+}
+
+function setMsg(k, cls, msg) {
+  const w = $("w-" + k);
+  if (!w) return;
+  w.classList.remove("err", "wrn", "adj");
+  if (cls) w.classList.add(cls);
+  $("m-" + k).textContent = msg;
+}
+
+let checkTimer = 0, checkSeq = 0;
+function scheduleCheck() { clearTimeout(checkTimer); checkTimer = setTimeout(runCheck, 220); }
+async function runCheck() {
+  const seq = ++checkSeq, opts = sendable(values());
+  const q = new URLSearchParams(opts).toString();
+  let res;
+  try { res = await (await fetch("/api/check?" + q, API)).json(); } catch (e) { $("verdict").innerHTML = `<div class="verdict bad">The studio is not answering. Is <span class="mono">microllm studio</span> still running?</div>`; return; }
+  if (seq !== checkSeq) return;
+  CHECK = res;
+  showCheck();
+}
+
+function placeholders() {
+  const r = CHECK && CHECK.resolved;
+  if (!r) return;
+  for (const f of FIELDS) {
+    const el = $("f-" + f.k);
+    if (f.type === "select" && f.k !== "data") el.options[0].textContent = `default (${r[f.k]})`;
+    else if (!f.type || f.type === "text") el.placeholder = r[f.k] == null ? "" : typeof r[f.k] === "number" ? String(+r[f.k].toPrecision(6)) : String(r[f.k]);
+  }
+}
+
+function estimate() {
+  const c = CHECK, p = PROBE && PROBE_KEY === probeKey() ? PROBE : null;
+  if (!c || !c.ok) return null;
+  const graph = c.graph_numbers * 8;
+  const snap = +c.snapshot_bytes;
+  // The step's graph (measured when timed), the text and its tokens, and a snapshot being written.
+  const memory = (p ? p.peak_bytes : graph + 60e6) + +c.data_memory_bytes + 2 * snap;
+  let time = null;
+  if (p) time = c.steps * p.step_seconds + c.evals * (+(CHECK.resolved["eval-batches"])) * p.forward_seconds * 1.5 + c.snapshots * (snap / 150e6 + 2 * p.step_seconds) + 5;
+  return {memory, time, disk: +c.disk_bytes, measured: !!p};
+}
+
+function verdictOf(e) {
+  const avail = SYS && SYS.ram_available, free = SYS && SYS.disk_free;
+  const out = {level: "ok", notes: []};
+  const bump = (lvl, msg) => { out.notes.push([lvl, msg]); if (lvl === "bad" || (lvl === "warn" && out.level === "ok")) out.level = lvl; };
+  if (avail) {
+    if (e.memory > 0.9 * avail) bump("bad", `Needs about ${fmtBytes(e.memory)} of memory; ${fmtBytes(avail)} is free. This will not fit: make the model, the batch or the context smaller, or close other programs and check again.`);
+    else if (e.memory > 0.5 * avail) bump("warn", `Needs about ${fmtBytes(e.memory)} of the ${fmtBytes(avail)} free memory: more than half. Other programs may slow down or the system may swap.`);
+  }
+  if (free && e.disk > 0.5 * free) bump("warn", `Files of about ${fmtBytes(e.disk)} on a disk with ${fmtBytes(free)} free.`);
+  if (e.time != null && e.time > 8 * 3600) bump("warn", `About ${fmtTime(e.time)} of training. Fewer steps, a smaller model${SYS && SYS.nvidia_driver ? ", or the GPU" : ""} would be quicker.`);
+  return out;
+}
+
+function showCheck() {
+  const c = CHECK;
+  placeholders();
+  for (const f of FIELDS) if (!$("f-" + f.k).disabled) setMsg(f.k, "", "");
+  updateEnabled();
+  for (const [k, msg] of Object.entries(adjusted)) setMsg(k, "adj", msg);
+  for (const w of c.warnings || []) if (FIELD[w.field]) setMsg(w.field, "wrn", w.message);
+  const exists = (c.warnings || []).some(w => w.field === "run" && /already exists/.test(w.message));
+  $("replaceWrap").hidden = !exists;
+  if (!c.ok) {
+    const f = c.error.field;
+    if (FIELD[f]) setMsg(f, "err", c.error.message);
+    $("verdict").innerHTML = `<div class="verdict bad">Will not work: ${esc(c.error.message)}</div>`;
+    $("estStats").innerHTML = "";
+    $("estNotes").innerHTML = "";
+    updateStart();
+    return;
+  }
+  const e = estimate(), v = verdictOf(e);
+  const avail = SYS && SYS.ram_available;
+  const cls = (x, lim) => !lim ? "" : x > 0.9 * lim ? "bad" : x > 0.5 * lim ? "warn" : "good";
+  const stat = (val, label, k = "") => `<div class="stat ${k}"><strong>${val}</strong><span>${label}</span></div>`;
+  $("estStats").innerHTML = [
+    stat(fmtNum(c.params), "parameters"),
+    stat(c.vocab + (c.vocab_exact ? "" : " max"), "tokens in the vocabulary"),
+    stat((c.steps_exact ? "" : "≤ ") + c.steps.toLocaleString(), "steps"),
+    stat(fmtBytes(e.memory), (e.measured ? "memory (measured step)" : "memory (estimate)"), cls(e.memory, avail)),
+    stat(fmtBytes(e.disk), `files: ${c.snapshots} ${c.detail} snapshots + model`, cls(e.disk, SYS && SYS.disk_free)),
+    stat(e.time != null ? fmtTime(e.time) : "—", e.time != null ? `rough total (${(PROBE.step_seconds * 1000).toFixed(PROBE.step_seconds < 1 ? 1 : 0)} ms per step on ${PROBE.device}${PROBE.gpu_name ? ": " + PROBE.gpu_name : ""})` : "time: press “Time it”", e.time == null ? "" : e.time > 8 * 3600 ? "warn" : "good"),
+  ].join("");
+  const label = {ok: "Fits this machine" + (e.measured ? "" : " (by estimate; time it to be sure)"), warn: "Possible, with the risks below", bad: "Will not fit this machine"}[v.level];
+  $("verdict").innerHTML = `<div class="verdict ${v.level}">${label}</div>`;
+  $("estNotes").innerHTML = v.notes.map(([l, m]) => `<li style="color:var(--${l === "bad" ? "fail" : "warn"})">${esc(m)}</li>`).join("") +
+    (c.steps_exact ? "" : `<li class="muted">With BPE, Characters gives fewer steps than shown; the exact number is known once the tokenizer is learned.</li>`);
+  updateStart();
+}
+
+function probeKey() { return JSON.stringify(sendable(values())); }
+async function measure() {
+  if (!CHECK || !CHECK.ok) return;
+  const key = probeKey();
+  $("measure").disabled = true;
+  $("measureNote").textContent = "Timing a few steps…";
+  let res;
+  try { res = await post("/api/probe", {opts: sendable(values())}); } catch (e) { res = {ok: false, error: {message: String(e)}}; }
+  $("measure").disabled = false;
+  if (res.ok) {
+    PROBE = res; PROBE_KEY = key;
+    $("measureNote").textContent = `Measured: ${(res.step_seconds * 1000).toFixed(1)} ms per step, ${fmtBytes(res.peak_bytes)} at most.`;
+  } else $("measureNote").innerHTML = `<span style="color:var(--fail)">${esc(res.error.message)}</span>`;
+  showCheck();
+}
+
+async function post(url, body) {
+  const r = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json", "X-Microllm-Studio": "1"}, body: JSON.stringify(body)});
+  return r.json();
+}
+
+let STATUS = {state: "idle"};
+// Training, or the valley being measured after it: either way the machine is busy.
+const busyNow = () => STATUS.state === "running" || STATUS.valley === "computing";
+function updateStart() {
+  const busy = busyNow(), ack = $("ack").checked;
+  const e = CHECK && CHECK.ok ? estimate() : null;
+  const bad = e && verdictOf(e).level === "bad";
+  const needReplace = !$("replaceWrap").hidden && !$("replace").checked;
+  const busyWhy = STATUS.state === "running" ? "A run is training. Stop it before starting another." : "The last run's valley is being measured (about a minute).";
+  const why = busy ? busyWhy :
+    !CHECK ? "Checking…" : !CHECK.ok ? "Fix the setting marked in red first." : bad ? "This setting will not fit this machine." :
+    needReplace ? "A run with this name exists: tick “replace” or choose another name." : !ack ? "Tick “I understand” in the notice at the top first." : "";
+  $("start").disabled = !!why;
+  $("startWhy").textContent = why;
+  const firstWhy = busy ? busyWhy : !SYS || !SYS.datasets.some(d => d.path === FIRST_DATA) ? `Needs ${FIRST_DATA}.` : !ack ? "First read the notice below and tick “I understand”." : "";
+  $("firstStart").disabled = !!firstWhy;
+  $("firstWhy").textContent = firstWhy;
+}
+
+// The first run: the small transformer on Shakespeare, 1,500 steps (about 2 minutes on a laptop).
+const FIRST_DATA = "data/tinyshakespeare.txt";
+function firstOpts() {
+  const taken = new Set(SYS.runs);
+  let run = "my_first_model", i = 2;
+  while (taken.has(run)) run = "my_first_model_" + i++;
+  // Small models run no faster on many threads; a few leave the computer free.
+  return {model: "transformer", data: FIRST_DATA, steps: "1500", "eval-every": "100", "snap-every": "250", threads: String(Math.min(6, recThreads())), run};
+}
+
+let liveWin = null;
+// Opens the live-view tab at the click (later, a browser would block it), then starts the run.
+async function launch(opts, replace, whyEl) {
+  liveWin = window.open("about:blank", "_blank");
+  $(whyEl).style.color = "";
+  let res;
+  try { res = await post("/api/train", {opts, replace}); } catch (e) { res = {error: {message: String(e)}}; }
+  if (res.state) {
+    if (!SYS.runs.includes(opts.run)) SYS.runs.push(opts.run);
+    // Replacing is a one-time choice: the next start asks again.
+    $("replace").checked = false;
+    STATUS = res; showStatus(); pollStatus();
+    $("runPanel").scrollIntoView({behavior: "smooth", block: "start"});
+  } else {
+    if (liveWin) liveWin.close();
+    // A run of this name may have appeared since the last check: show the "replace" box.
+    if (res.error && res.error.field === "run") runCheck();
+    $(whyEl).textContent = res.error ? res.error.message : "Could not start.";
+    $(whyEl).style.color = "var(--fail)";
+  }
+}
+const start = () => launch(sendable(values()), $("replace").checked, "startWhy");
+const startFirst = () => launch(firstOpts(), false, "firstWhy");
+
+let pollTimer = 0;
+async function pollStatus() {
+  clearTimeout(pollTimer);
+  const was = STATUS.state;
+  try { STATUS = await (await fetch("/api/status", API)).json(); } catch (e) { return; }
+  // Starting a run creates its folder, so the settings' name check (and "replace" box) is redone.
+  if (STATUS.state !== was) runCheck();
+  showStatus();
+  if (busyNow() || STATUS.valley === "waiting" && STATUS.state === "finished") pollTimer = setTimeout(pollStatus, 1000);
+}
+function showStatus() {
+  const s = STATUS, live = `http://127.0.0.1:${s.port}/viewer/index.html?run=${encodeURIComponent(s.run)}&live=1&studio=${location.port}`;
+  $("runPanel").hidden = s.state === "idle";
+  $("stop").hidden = !(s.state === "running" || s.valley === "computing" || s.serving);
+  $("stop").textContent = s.state === "running" ? "Stop training" : s.valley === "computing" ? "Stop measuring the valley" : "Close its live server";
+  const said = {running: "training", finished: "finished", failed: "failed", stopped: "stopped"}[s.state] || s.state;
+  $("badge").innerHTML = s.state === "idle" ? "" : `<span class="badge ${s.state === "running" || s.valley === "computing" ? "running" : s.state === "failed" ? "failed" : ""}">${said} · ${esc(s.run)} · ${fmtTime(+s.seconds)}</span>`;
+  const vn = $("valleyNote"), vtext = {
+    waiting: s.state === "finished" ? "Getting ready to measure the valley this run walked down…" : "",
+    computing: "Measuring the valley this run walked down (about a minute, at low priority). It appears on the run's Overview when ready.",
+    done: "The valley is ready: it's on the run's Overview page, under “The valley training walked down”.",
+    failed: "The valley could not be measured; the log below says why.",
+  }[s.valley] || "";
+  vn.textContent = vtext; vn.hidden = !vtext;
+  $("log").hidden = s.state === "idle";
+  if (s.log != null) { const el = $("log"), atEnd = el.scrollTop + el.clientHeight >= el.scrollHeight - 4; el.textContent = s.log; if (atEnd) el.scrollTop = el.scrollHeight; }
+  const link = $("liveLink");
+  if (s.state === "running" && s.serving) {
+    link.href = live; link.hidden = false; link.textContent = "Open the live view →";
+    if (liveWin && !liveWin.closed) { try { if (liveWin.location.href === "about:blank") liveWin.location.href = live; } catch (e) { liveWin = null; } }
+  } else if (s.state === "finished") {
+    link.href = `index.html?run=${encodeURIComponent(s.run)}`; link.hidden = false; link.textContent = "Open the finished run →";
+    // A run short enough to finish between two polls never showed its live view.
+    if (liveWin && !liveWin.closed) { try { if (liveWin.location.href === "about:blank") liveWin.location.href = link.href; } catch (e) {} }
+    liveWin = null;
+  } else link.hidden = true;
+  updateStart();
+}
+
+// Presets: settings this project has trained, smallest first.
+const PRESETS = [
+  {name: "Bigram", blurb: "A table of next-character counts. Seconds.", opts: {model: "bigram", run: "studio_bigram"}},
+  {name: "MLP", blurb: "Bengio-style network over 8 characters. About a minute.", opts: {model: "mlp", run: "studio_mlp"}},
+  {name: "Small transformer", blurb: "Width 48, 2 layers, context 32, 5,000 steps.", opts: {model: "transformer", run: "studio_transformer"}},
+  {name: "Shakespeare recipe", blurb: "Width 128, 4 layers, context 64, Muon, 2,000 steps: the project's fast recipe.", opts: {model: "transformer", context: "64", emb: "128", heads: "4", layers: "4", examples: "32", optimizer: "muon", "muon-lr": "1.2e-2", steps: "2000", "snap-every": "500", run: "studio_shakespeare"}},
+  {name: "TinyStories, width 256", blurb: "The published run: 4.8 M parameters, 6 layers, context 256, 20,000 steps. Needs the GPU to finish in under an hour.", needs: "data/tinystories_100m.txt",
+   opts: {model: "transformer", data: "data/tinystories_100m.txt", "val-frac": "0.009903", context: "256", emb: "256", heads: "4", layers: "6", examples: "16", optimizer: "muon", "muon-lr": "6e-3", steps: "20000", warmup: "200", "eval-every": "500", "snap-every": "5000", run: "studio_tinystories", device: "gpu"}},
+];
+const recThreads = () => Math.max(1, (SYS ? SYS.cores : 2) - 2);
+function presetOpts(p) {
+  const o = {...p.opts, threads: String(recThreads())};
+  if (o.device === "gpu" && !(SYS && SYS.nvidia_driver)) delete o.device;
+  return o;
+}
+async function renderPresets() {
+  const have = new Set(SYS.datasets.map(d => d.path));
+  const rows = [];
+  for (const p of PRESETS) {
+    if (p.needs && !have.has(p.needs)) { rows.push({p, missing: true}); continue; }
+    const c = await (await fetch("/api/check?" + new URLSearchParams(sendable(presetOpts(p))), API)).json();
+    rows.push({p, c});
+  }
+  let rec = -1;
+  rows.forEach((r, i) => {
+    if (!r.c || !r.c.ok) { r.fit = "no"; return; }
+    const mem = r.c.graph_numbers * 8 + 60e6 + +r.c.data_memory_bytes + 2 * +r.c.snapshot_bytes;
+    r.mem = mem;
+    const memFit = !SYS.ram_available ? 1 : mem / SYS.ram_available, diskFit = !SYS.disk_free ? 0 : +r.c.disk_bytes / SYS.disk_free;
+    r.fit = memFit < 0.5 && diskFit < 0.5 ? "ok" : memFit < 0.9 && diskFit < 0.9 ? "tight" : "no";
+    if (r.fit === "ok" && !(r.p.opts.device === "gpu" && !SYS.nvidia_driver)) rec = i;
+  });
+  $("presets").innerHTML = rows.map((r, i) => {
+    const fit = r.missing ? `<span class="fit no">needs ${esc(r.p.needs)}: run <span class="mono">python data/prepare_tinystories.py</span></span>` :
+      !r.c.ok ? `<span class="fit no">${esc(r.c.error.message)}</span>` :
+      `<span class="fit ${r.fit}">${{ok: "Fits", tight: "Tight", no: "Too big"}[r.fit]}: about ${fmtBytes(r.mem)} memory, ${fmtBytes(+r.c.disk_bytes)} files</span>` +
+      (r.p.opts.device === "gpu" && !SYS.nvidia_driver ? `<small>No NVIDIA GPU here: on the processor this takes days.</small>` : "");
+    return `<button class="preset" data-i="${i}" ${r.missing ? "disabled" : ""}>${i === rec ? `<span class="rec">recommended</span>` : ""}<b>${r.p.name}</b><small>${r.p.blurb}</small>${fit}</button>`;
+  }).join("");
+  for (const b of document.querySelectorAll(".preset")) b.addEventListener("click", () => choosePreset(+b.dataset.i));
+  return rec;
+}
+function choosePreset(i) {
+  for (const f of FIELDS) setValue(f.k, "");
+  const o = presetOpts(PRESETS[i]);
+  if (!o.data) o.data = "data/tinyshakespeare.txt";
+  for (const [k, v] of Object.entries(o)) setValue(k, v);
+  document.querySelectorAll(".preset").forEach(b => b.classList.toggle("chosen", +b.dataset.i === i));
+  adjusted = {threads: `${recThreads()} of ${SYS.cores}: two left for the rest of the system`};
+  PROBE = null;
+  $("measureNote").textContent = "Runs a few real training steps of this model in a separate process (a few seconds of full load).";
+  updateEnabled();
+  scheduleCheck();
+}
+
+async function loadSystem() {
+  SYS = await (await fetch("/api/system", API)).json();
+  const s = SYS, ram = s.ram_available;
+  const stat = (v, l) => `<div class="stat"><strong>${v}</strong><span>${l}</span></div>`;
+  $("sysStats").innerHTML = [
+    stat(s.cores, "processor threads"),
+    stat(fmtBytes(ram), `memory free of ${fmtBytes(s.ram_total)}`),
+    stat(fmtBytes(s.disk_free), "free disk here"),
+    stat(s.nvidia_driver ? "NVIDIA" : "none", "GPU driver"),
+  ].join("");
+  $("sysNote").innerHTML = `${esc(s.os)} · ${esc(s.arch)}. Suggested threads: ${recThreads()} (all but two).` +
+    (s.os === "windows" ? "" : ` <b>${s.os === "macos" ? "macOS" : esc(s.os)} is untested; training runs on the processor only.</b>`);
+  const sel = $("f-data"), cur = sel.value;
+  sel.innerHTML = s.datasets.map(d => `<option value="${esc(d.path)}">${esc(d.path.replace(/^data\//, ""))} (${fmtBytes(d.bytes)})</option>`).join("");
+  if (cur) sel.value = cur;
+}
+
+const SHOWCASE = "90_showcase_tinystories";
+async function init() {
+  buildForm();
+  try { await loadSystem(); } catch (e) {
+    $("studio").hidden = true; $("offline").hidden = false;
+    return;
+  }
+  if (SYS.runs.includes(SHOWCASE)) $("exploreCard").href = `index.html?run=${SHOWCASE}`;
+  else { $("exploreCard").querySelector("b").textContent = "Explore past trainings"; $("exploreBlurb").textContent = "Runs already on this computer: how their loss fell, what they write, and the arithmetic of one training step."; }
+  const rec = await renderPresets();
+  choosePreset(rec >= 0 ? rec : 0);
+  $("measure").addEventListener("click", measure);
+  $("ack").addEventListener("change", updateStart);
+  $("replace").addEventListener("change", updateStart);
+  $("start").addEventListener("click", start);
+  $("firstStart").addEventListener("click", startFirst);
+  $("stop").addEventListener("click", async () => { STATUS = await post("/api/stop", {}); showStatus(); });
+  $("recheck").addEventListener("click", async () => { await loadSystem(); await renderPresets(); showCheck(); });
+  pollStatus();
+}
+init();
+</script>
+</body>
+</html>

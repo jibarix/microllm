@@ -1,0 +1,158 @@
+microllm 0.1.0 · run ts_d256_L6_muon · model transformer · started at unix time 1791359467
+config: steps=20000 examples/step=16 context=256 embedding_dim=256 heads=4 layers=6 mlp_hidden=1024 ln_eps=0.00001 init_std=0.02 mlp_relu2=false qk_norm=false zero_init_out=false optimizer=muon lr=0.003 weight_decay=0.1 seed=42 eval_every=500 eval_batches=20 snap_every=5000 throttle_ms=0 threads=20 device=gpu
+learning rate: linear warm-up over 200 steps to 0.003, then a cosine down to 0.00030000000000000003 at the last step
+data: data/tinystories_100m.txt · 101000333 characters · sha256 bd80a906396f1a88e357c70ee745468be1fef9a368bd60493e47f8f8fe559ebb
+tokenizer: characters (80 tokens)
+binary: exe_sha256=a907229bf5857bffad5e91f83a01533b7af46178684663e08ebb4771a25ad0f2 · rustc=rustc 1.95.0 (59807616e 2026-04-14) · profile=release · target=x86_64-pc-windows-msvc · version=0.1.0
+
+gradcheck before training:
+check                                                elements  max abs err  max rel err  result
+add                                                        24    1.898e-14    4.022e-13  PASS
+mul                                                        24    3.128e-14    3.921e-11  PASS
+matmul                                                     25    4.685e-14    6.425e-12  PASS
+add_row                                                    16    2.870e-14    5.486e-13  PASS
+tanh                                                       12    5.086e-14    4.620e-13  PASS
+embedding (repeated ids)                                   18    8.135e-14    4.626e-10  PASS
+cross_entropy                                              20    7.943e-16    9.796e-12  PASS
+mean                                                       12    1.253e-14    2.939e-13  PASS
+reshape (4x6 → 3x8)                                        24    3.890e-14    3.626e-11  PASS
+reuse: x*x + x                                             12    1.308e-13    3.530e-10  PASS
+reuse: x + x                                               12    4.219e-14    1.556e-12  PASS
+mlp: embedding→matmul→add_row→tanh→cross_entropy           42    9.551e-13    1.137e-10  PASS
+mlp model (real forward code, tiny)                        91    1.777e-11    8.675e-11  PASS
+scale                                                      12    8.066e-15    4.360e-13  PASS
+mul_row                                                    16    1.958e-14    8.053e-13  PASS
+gelu (−4 … 3.7, including 0)                               10    2.773e-14    1.452e-10  PASS
+relu² (−4 … 3.7)                                           10    6.961e-14     1.850e-9  PASS
+normalize (layernorm core)                                 15    6.404e-13    3.312e-11  PASS
+normalize (rows nearly constant)                            8     1.772e-6     2.352e-8  PASS
+layernorm: normalize→mul_row→add_row (x, gain, bias)       20    5.053e-13    5.812e-12  PASS
+split_heads (2·3 x 2·2 → 2·2·3 x 2)                        24    3.465e-14    9.073e-12  PASS
+merge_heads (2·2·3 x 2 → 2·3 x 2·2)                        24    3.448e-14    8.044e-12  PASS
+batch_matmul (2 blocks of 3x4 · 4x3)                       48    8.421e-14    2.459e-11  PASS
+batch_matmul, transposed (2 blocks of 3x4 · (3x4)ᵀ)        48    2.396e-13    1.246e-11  PASS
+causal_softmax (2 blocks, T = 3)                           18    1.375e-14    3.469e-10  PASS
+attention: split→q·kᵀ→scale→causal_softmax→·v→merge        72    6.840e-14    4.626e-10  PASS
+transformer model (real forward code, tiny)               571    7.479e-12     7.055e-8  PASS
+
+GPU: NVIDIA GeForce RTX 3070 Ti Laptop GPU; kernels from Cuda compilation tools, release 12.6, V12.6.85; forward and backward in f32, AdamW and the f64 master parameters on the CPU
+GPU vs CPU on one batch: loss 4.423724 vs 4.423724 (relative difference 4.7e-9); largest gradient difference 9.7e-7 (L0.W_up)
+
+transformer: vocab 80, 4845648 params, 100000126 train / 1000207 val tokens (100000126 / 1000207 characters), baseline loss ln(80) = 4.3820
+trace: 5 snapshots × 639541810 numbers; detail = summary (auto: full snapshots would be about 17054 MB (limit 300 MB); use --detail full to force)
+
+live view: http://127.0.0.1:8821/   (serving viewer/ and runs/ on this machine only)
+
+step     0  batch loss 4.4265  train 4.4186  val 4.4169 (6.372 bits/char)  |grad| 14.7786  lr 1.50e-5
+step   500  batch loss 1.0856  train 1.1046  val 1.1016 (1.589 bits/char)  |grad| 0.4320  lr 3.00e-3
+step  1000  batch loss 0.9800  train 0.9142  val 0.9145 (1.319 bits/char)  |grad| 0.3888  lr 2.99e-3
+step  1500  batch loss 0.9078  train 0.8570  val 0.8511 (1.228 bits/char)  |grad| 0.3237  lr 2.97e-3
+step  2000  batch loss 0.8827  train 0.8213  val 0.8232 (1.188 bits/char)  |grad| 0.3018  lr 2.95e-3
+step  2500  batch loss 0.8264  train 0.8017  val 0.7974 (1.150 bits/char)  |grad| 0.2767  lr 2.91e-3
+step  3000  batch loss 0.7812  train 0.7838  val 0.7836 (1.130 bits/char)  |grad| 0.2646  lr 2.87e-3
+step  3500  batch loss 0.8005  train 0.7766  val 0.7715 (1.113 bits/char)  |grad| 0.2558  lr 2.82e-3
+step  4000  batch loss 0.7798  train 0.7628  val 0.7593 (1.095 bits/char)  |grad| 0.2423  lr 2.76e-3
+step  4500  batch loss 0.7754  train 0.7548  val 0.7565 (1.091 bits/char)  |grad| 0.2434  lr 2.70e-3
+step  5000  batch loss 0.7356  train 0.7482  val 0.7468 (1.077 bits/char)  |grad| 0.2173  lr 2.63e-3
+step  5500  batch loss 0.6829  train 0.7421  val 0.7442 (1.074 bits/char)  |grad| 0.2139  lr 2.55e-3
+step  6000  batch loss 0.7265  train 0.7333  val 0.7330 (1.058 bits/char)  |grad| 0.2135  lr 2.47e-3
+step  6500  batch loss 0.7126  train 0.7263  val 0.7269 (1.049 bits/char)  |grad| 0.2228  lr 2.38e-3
+step  7000  batch loss 0.6745  train 0.7272  val 0.7274 (1.049 bits/char)  |grad| 0.2508  lr 2.29e-3
+step  7500  batch loss 0.7215  train 0.7155  val 0.7126 (1.028 bits/char)  |grad| 0.2196  lr 2.19e-3
+step  8000  batch loss 0.7091  train 0.7088  val 0.7096 (1.024 bits/char)  |grad| 0.2215  lr 2.09e-3
+step  8500  batch loss 0.7151  train 0.7035  val 0.7070 (1.020 bits/char)  |grad| 0.2306  lr 1.99e-3
+step  9000  batch loss 0.6860  train 0.6952  val 0.6967 (1.005 bits/char)  |grad| 0.2195  lr 1.88e-3
+step  9500  batch loss 0.6967  train 0.6897  val 0.6913 (0.997 bits/char)  |grad| 0.2388  lr 1.78e-3
+step 10000  batch loss 0.6794  train 0.6858  val 0.6828 (0.985 bits/char)  |grad| 0.2325  lr 1.67e-3
+step 10500  batch loss 0.6856  train 0.6769  val 0.6751 (0.974 bits/char)  |grad| 0.2409  lr 1.56e-3
+step 11000  batch loss 0.7071  train 0.6700  val 0.6685 (0.964 bits/char)  |grad| 0.2541  lr 1.46e-3
+step 11500  batch loss 0.6782  train 0.6619  val 0.6622 (0.955 bits/char)  |grad| 0.2445  lr 1.35e-3
+step 12000  batch loss 0.6648  train 0.6596  val 0.6558 (0.946 bits/char)  |grad| 0.2485  lr 1.25e-3
+step 12500  batch loss 0.6452  train 0.6471  val 0.6491 (0.936 bits/char)  |grad| 0.2338  lr 1.15e-3
+step 13000  batch loss 0.6744  train 0.6421  val 0.6443 (0.929 bits/char)  |grad| 0.2538  lr 1.05e-3
+step 13500  batch loss 0.6253  train 0.6330  val 0.6359 (0.917 bits/char)  |grad| 0.2810  lr 9.56e-4
+step 14000  batch loss 0.6992  train 0.6252  val 0.6304 (0.910 bits/char)  |grad| 0.2699  lr 8.67e-4
+step 14500  batch loss 0.6609  train 0.6188  val 0.6194 (0.894 bits/char)  |grad| 0.2465  lr 7.82e-4
+step 15000  batch loss 0.6541  train 0.6151  val 0.6170 (0.890 bits/char)  |grad| 0.2593  lr 7.03e-4
+step 15500  batch loss 0.6330  train 0.6064  val 0.6070 (0.876 bits/char)  |grad| 0.2575  lr 6.30e-4
+step 16000  batch loss 0.5947  train 0.6004  val 0.6037 (0.871 bits/char)  |grad| 0.2664  lr 5.63e-4
+step 16500  batch loss 0.6076  train 0.5939  val 0.5942 (0.857 bits/char)  |grad| 0.2741  lr 5.03e-4
+step 17000  batch loss 0.5941  train 0.5873  val 0.5928 (0.855 bits/char)  |grad| 0.2728  lr 4.50e-4
+step 17500  batch loss 0.5473  train 0.5802  val 0.5875 (0.848 bits/char)  |grad| 0.2683  lr 4.05e-4
+step 18000  batch loss 0.5195  train 0.5768  val 0.5827 (0.841 bits/char)  |grad| 0.2564  lr 3.67e-4
+step 18500  batch loss 0.5949  train 0.5717  val 0.5796 (0.836 bits/char)  |grad| 0.2797  lr 3.38e-4
+step 19000  batch loss 0.6088  train 0.5698  val 0.5750 (0.830 bits/char)  |grad| 0.2845  lr 3.17e-4
+step 19500  batch loss 0.5555  train 0.5670  val 0.5720 (0.825 bits/char)  |grad| 0.2817  lr 3.04e-4
+step 19999  batch loss 0.5486  train 0.5649  val 0.5721 (0.825 bits/char)  |grad| 0.2956  lr 3.00e-4
+
+trained 20000 steps in 2815.84s (2815.84s excluding throttle); after training: train 0.5650  val 0.5722
+time: training 2319.54s (116.0 ms/step), evaluations 477.96s, everything else 18.34s
+validation targets (first evaluation at or below; every 500 steps):
+  val <= 3.00 bits/char  at step   500  after   2048000 characters     50.26s of training
+  val <= 2.80 bits/char  at step   500  after   2048000 characters     50.26s of training
+  val <= 2.60 bits/char  at step   500  after   2048000 characters     50.26s of training
+  val <= 2.40 bits/char  at step   500  after   2048000 characters     50.26s of training
+  val <= 2.30 bits/char  at step   500  after   2048000 characters     50.26s of training
+  val <= 2.25 bits/char  at step   500  after   2048000 characters     50.26s of training
+  val <= 2.20 bits/char  at step   500  after   2048000 characters     50.26s of training
+sample:
+Once upon a time, there was a boy named Tim. He was on a farm so modern day he got dheep. He wanted to make his daughter with things he liked. He saw many trees and birds, but he also wanted to be friends who liked to play with them.
+One day, Tim went to an impressive house. He wanted to succeed fro
+
+final benchmark (whole val split, 1000207 tokens, 1000207 characters, stride 128, mean context 192.5 characters): 0.7340 bits/char (0.5088 nats/token)  [19.1s]
+head patterns (first 16384 val tokens in 64 windows; weight on each pattern, then what even attention would give):
+                      previous token          itself      last space    last newline      same token       induction
+  even attention               0.020           0.020           0.017           0.008           0.079           0.079
+  L0 head 0                    0.013           0.475           0.031           0.015           0.434           0.016
+  L0 head 1                    0.011           0.022           0.191           0.010           0.032           0.053
+  L0 head 2                    0.003           0.202           0.148           0.008           0.063           0.096
+  L0 head 3                    0.931           0.034           0.195           0.012           0.025           0.031
+  L1 head 0                    0.238           0.052           0.089           0.014           0.051           0.048
+  L1 head 1                    0.058           0.037           0.077           0.019           0.068           0.074
+  L1 head 2                    0.079           0.053           0.148           0.012           0.098           0.058
+  L1 head 3                    0.053           0.043           0.138           0.095           0.101           0.065
+  L2 head 0                    0.122           0.060           0.325           0.024           0.136           0.051
+  L2 head 1                    0.105           0.059           0.118           0.022           0.077           0.071
+  L2 head 2                    0.094           0.043           0.128           0.040           0.104           0.047
+  L2 head 3                    0.127           0.096           0.425           0.036           0.096           0.054
+  L3 head 0                    0.019           0.027           0.042           0.081           0.099           0.194
+  L3 head 1                    0.135           0.076           0.388           0.043           0.070           0.063
+  L3 head 2                    0.079           0.045           0.132           0.024           0.122           0.049
+  L3 head 3                    0.060           0.041           0.097           0.052           0.137           0.050
+  L4 head 0                    0.048           0.032           0.059           0.022           0.096           0.055
+  L4 head 1                    0.031           0.029           0.050           0.037           0.090           0.051
+  L4 head 2                    0.039           0.029           0.085           0.084           0.088           0.059
+  L4 head 3                    0.192           0.042           0.424           0.026           0.072           0.059
+  L5 head 0                    0.032           0.051           0.042           0.063           0.079           0.139
+  L5 head 1                    0.031           0.052           0.037           0.045           0.079           0.149
+  L5 head 2                    0.033           0.033           0.055           0.023           0.067           0.064
+  L5 head 3                    0.033           0.032           0.047           0.023           0.077           0.062
+  [0.8s]
+head ablation (first 16384 val tokens = 16384 characters, baseline 0.8243 bits/char), change in bits/char with one head off:
+  L0 head 0: +0.1215
+  L0 head 1: +1.8473
+  L0 head 2: +0.4135
+  L0 head 3: +2.7065
+  L1 head 0: +0.0987
+  L1 head 1: +0.0428
+  L1 head 2: +0.0174
+  L1 head 3: +0.0231
+  L2 head 0: +0.0195
+  L2 head 1: +0.0238
+  L2 head 2: +0.0241
+  L2 head 3: +0.0251
+  L3 head 0: +0.0373
+  L3 head 1: +0.0385
+  L3 head 2: +0.0182
+  L3 head 3: +0.0243
+  L4 head 0: +0.0150
+  L4 head 1: +0.0238
+  L4 head 2: +0.0088
+  L4 head 3: +0.0370
+  L5 head 0: +0.0170
+  L5 head 1: +0.0123
+  L5 head 2: +0.0188
+  L5 head 3: +0.0179
+  [8.3s]
+wrote runs\ts_d256_L6_muon (snapshots 1656.0 MB)
+training finished; still serving http://127.0.0.1:8821/ — press Ctrl+C to stop
